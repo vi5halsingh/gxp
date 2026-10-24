@@ -1,7 +1,21 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "../../services/api";
 
-// 1. Fetch form fields for user's assigned role
+// 1. Fetch all form fields (to display all fields to both roles)
+export const fetchAllFields = createAsyncThunk(
+  "profile/fetchAllFields",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.getAllInputs();
+      if (!res.success) return rejectWithValue(res.message);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.message || "Failed to fetch fields");
+    }
+  }
+);
+
+// Backward compatible: Fetch form fields for user's assigned role
 export const fetchRoleFields = createAsyncThunk(
   "profile/fetchRoleFields",
   async (role, { rejectWithValue }) => {
@@ -64,7 +78,21 @@ const profileSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Fetch Fields
+    // Fetch All Fields
+    builder
+      .addCase(fetchAllFields.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchAllFields.fulfilled, (state, action) => {
+        state.loading = false;
+        state.fields = action.payload;
+      })
+      .addCase(fetchAllFields.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // Fetch Role Fields (fallback)
     builder
       .addCase(fetchRoleFields.pending, (state) => {
         state.loading = true;

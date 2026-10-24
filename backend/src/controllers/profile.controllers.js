@@ -1,3 +1,4 @@
+import inputmodel from "../models/input.models.js";
 import Profile from "../models/profile.model.js";
 
 // Save or update profile data
@@ -19,13 +20,32 @@ export const saveProfile = async (req, res) => {
       });
     }
 
+    // Only allow updating fields permitted for this user's role
+    const allowedInputs = await inputmodel.find({ role: req.user.role });
+    const allowedFieldNames = new Set(allowedInputs.map((f) => f.name));
+
+    // Get existing profile to preserve other role's data if any exists
+    const existingProfile = await Profile.findOne({ user: req.user._id });
+    const existingData = existingProfile?.data instanceof Map
+      ? Object.fromEntries(existingProfile.data)
+      : (existingProfile?.data || {});
+
+    const updatedData = { ...existingData };
+
+    // Update only the fields that belong to the user's role
+    for (const [key, value] of Object.entries(data)) {
+      if (allowedFieldNames.has(key)) {
+        updatedData[key] = value;
+      }
+    }
+
     const profile = await Profile.findOneAndUpdate(
       { user: req.user._id },
       {
         $set: {
           user: req.user._id,
           role: req.user.role,
-          data: data,
+          data: updatedData,
         },
       },
       { new: true, upsert: true }
