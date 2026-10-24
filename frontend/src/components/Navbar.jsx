@@ -1,6 +1,11 @@
 import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../redux/slices/authSlice";
 
-export default function Navbar({ user, onLogout }) {
+export default function Navbar() {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+
   const getRoleBadge = (role) => {
     switch (role) {
       case "admin":
@@ -44,7 +49,7 @@ export default function Navbar({ user, onLogout }) {
             </span>
 
             <button
-              onClick={onLogout}
+              onClick={() => dispatch(logout())}
               className="text-sm px-3.5 py-1.5 rounded-md font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 border border-gray-300 hover:border-red-200 transition"
             >
               Logout

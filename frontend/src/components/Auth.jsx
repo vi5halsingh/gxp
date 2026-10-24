@@ -1,57 +1,34 @@
 import React, { useState } from "react";
-import { api } from "../services/api";
+import { useSelector, useDispatch } from "react-redux";
+import { loginUser, registerUser, clearAuthError } from "../redux/slices/authSlice";
 
-export default function Auth({ onAuthSuccess }) {
+export default function Auth() {
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
+
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError("");
-    setMessage("");
+    if (error) dispatch(clearAuthError());
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    try {
-      if (isLogin) {
-        const res = await api.login({
+    if (isLogin) {
+      dispatch(
+        loginUser({
           email: formData.email,
           password: formData.password,
-        });
-
-        if (res.success) {
-          localStorage.setItem("token", res.token);
-          onAuthSuccess(res.data);
-        } else {
-          setError(res.message || "Login failed");
-        }
-      } else {
-        const res = await api.register(formData);
-
-        if (res.success) {
-          localStorage.setItem("token", res.token);
-          setMessage(res.message);
-          onAuthSuccess(res.data);
-        } else {
-          setError(res.message || "Registration failed");
-        }
-      }
-    } catch (err) {
-      setError("Server connection failed. Is backend running?");
-    } finally {
-      setLoading(false);
+        })
+      );
+    } else {
+      dispatch(registerUser(formData));
     }
   };
 
@@ -75,8 +52,7 @@ export default function Auth({ onAuthSuccess }) {
             type="button"
             onClick={() => {
               setIsLogin(true);
-              setError("");
-              setMessage("");
+              dispatch(clearAuthError());
             }}
             className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${
               isLogin
@@ -90,8 +66,7 @@ export default function Auth({ onAuthSuccess }) {
             type="button"
             onClick={() => {
               setIsLogin(false);
-              setError("");
-              setMessage("");
+              dispatch(clearAuthError());
             }}
             className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${
               !isLogin
@@ -106,12 +81,6 @@ export default function Auth({ onAuthSuccess }) {
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
             {error}
-          </div>
-        )}
-
-        {message && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">
-            {message}
           </div>
         )}
 

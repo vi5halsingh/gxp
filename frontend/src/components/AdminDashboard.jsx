@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { api } from "../services/api";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  fetchAllUsers,
+  assignUserRole,
+  fetchAllFields,
+  createField,
+  deleteField,
+  clearAdminMessage,
+} from "../redux/slices/adminSlice";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("users"); // "users" | "fields"
-  const [users, setUsers] = useState([]);
-  const [fields, setFields] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({ type: "", text: "" });
+  const dispatch = useDispatch();
+  const { users, fields, loading, error, message } = useSelector(
+    (state) => state.admin
+  );
 
-  // New field state
+  const [activeTab, setActiveTab] = useState("users"); // "users" | "fields"
+
+  // Form state for creating a new field
   const [newField, setNewField] = useState({
     label: "",
     role: "user",
@@ -16,83 +25,40 @@ export default function AdminDashboard() {
     required: true,
   });
 
-  const showNotification = (type, text) => {
-    setNotification({ type, text });
-    setTimeout(() => setNotification({ type: "", text: "" }), 3500);
-  };
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [usersRes, fieldsRes] = await Promise.all([
-        api.getAllUsers(),
-        api.getAllInputs(),
-      ]);
-
-      if (usersRes.success) setUsers(usersRes.data);
-      if (fieldsRes.success) setFields(fieldsRes.data);
-    } catch (err) {
-      showNotification("error", "Failed to load dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    dispatch(fetchAllUsers());
+    dispatch(fetchAllFields());
+  }, [dispatch]);
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const handleAssignRole = async (userId, role) => {
-    try {
-      const res = await api.assignRole(userId, role);
-      if (res.success) {
-        showNotification("success", `Role '${role}' assigned successfully!`);
-        setUsers((prev) =>
-          prev.map((u) => (u._id === userId ? { ...u, role: role } : u))
-        );
-      } else {
-        showNotification("error", res.message || "Failed to assign role");
-      }
-    } catch (err) {
-      showNotification("error", "Error assigning role");
+    if (message || error) {
+      const timer = setTimeout(() => {
+        dispatch(clearAdminMessage());
+      }, 3500);
+      return () => clearTimeout(timer);
     }
+  }, [message, error, dispatch]);
+
+  const handleAssignRole = (userId, role) => {
+    dispatch(assignUserRole({ userId, role }));
   };
 
-  const handleAddField = async (e) => {
+  const handleAddField = (e) => {
     e.preventDefault();
     if (!newField.label.trim()) return;
 
-    try {
-      const res = await api.createInput(newField);
-      if (res.success) {
-        showNotification("success", "Input field created successfully!");
-        setFields((prev) => [...prev, res.data]);
-        setNewField({
-          label: "",
-          role: newField.role,
-          type: "text",
-          required: true,
-        });
-      } else {
-        showNotification("error", res.message || "Failed to add field");
-      }
-    } catch (err) {
-      showNotification("error", "Error creating input field");
-    }
+    dispatch(createField(newField));
+    setNewField({
+      label: "",
+      role: newField.role,
+      type: "text",
+      required: true,
+    });
   };
 
-  const handleDeleteField = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this field?")) return;
-    try {
-      const res = await api.deleteInput(id);
-      if (res.success) {
-        showNotification("success", "Input field deleted");
-        setFields((prev) => prev.filter((f) => f._id !== id));
-      } else {
-        showNotification("error", res.message || "Failed to delete field");
-      }
-    } catch (err) {
-      showNotification("error", "Error deleting field");
+  const handleDeleteField = (id) => {
+    if (window.confirm("Are you sure you want to delete this field?")) {
+      dispatch(deleteField(id));
     }
   };
 
@@ -134,19 +100,19 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {notification.text && (
-        <div
-          className={`mb-6 p-4 rounded-lg text-sm font-medium border ${
-            notification.type === "success"
-              ? "bg-green-50 text-green-800 border-green-200"
-              : "bg-red-50 text-red-800 border-red-200"
-          }`}
-        >
-          {notification.text}
+      {message && (
+        <div className="mb-6 p-4 rounded-lg text-sm font-medium border bg-green-50 text-green-800 border-green-200">
+          {message}
         </div>
       )}
 
-      {loading ? (
+      {error && (
+        <div className="mb-6 p-4 rounded-lg text-sm font-medium border bg-red-50 text-red-800 border-red-200">
+          {error}
+        </div>
+      )}
+
+      {loading && users.length === 0 ? (
         <div className="text-center py-16 text-gray-400">Loading data...</div>
       ) : activeTab === "users" ? (
         /* USERS MANAGEMENT SECTION */
