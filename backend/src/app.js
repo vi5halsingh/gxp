@@ -1,32 +1,40 @@
-import dotenv from "dotenv"
-dotenv.config()
-import express from "express"
-import cors from "cors"
-import cookieParser from "cookie-parser"
+import dotenv from "dotenv";
+dotenv.config();
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 
-const app = express()
+import userRouter from "./routes/user.routes.js";
+import inputRouter from "./routes/input.routes.js";
+import profileRouter from "./routes/profile.routes.js";
 
-app.use(express.json())
-app.use(cors())
-app.use(express.urlencoded({extended:true}))
-app.use(cookieParser())
+const app = express();
 
+app.use(express.json());
+app.use(cors());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-app.get("/",(req, res) =>{
-    res.send("hello from server")
-})
+app.get("/", (req, res) => {
+  res.send("API is running");
+});
 
-app.use((err, req, res,_) =>{
-    console.log("universal error occures",err)
-    res.status(statusCode).json({
-        success :false,
-        status : statusCode,
-        message : message,
-        stack : process.env.NODE_ENV === "development" ? err.stack : undefined
-    })
-})
+// Routes
+app.use("/api/user", userRouter);
+app.use("/api/input", inputRouter);
+app.use("/api/profile", profileRouter);
 
-import userRouter from "./routes/user.routes.js"
-app.use('/api/user',userRouter)
+// Central error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Universal error:", err);
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal server error";
+
+  res.status(statusCode).json({
+    success: false,
+    message,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+  });
+});
 
 export default app;

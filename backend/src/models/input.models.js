@@ -1,19 +1,35 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const inputSchema = mongoose.Schema({
-    name:{
-        type:String,
-        required:true,
-
+const inputSchema = new mongoose.Schema(
+  {
+    label: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    role:{
-        type:String,
-        required:true,
-        enum:['user', 'seller'],
-        default:'user'
-    }
-}, {timestamps : true})
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ["text", "number", "email", "date", "textarea"],
+      default: "text",
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: ["user", "seller"],
+    },
+    required: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { timestamps: true }
+);
 
-const inputmodel = mongoose.model("input", inputSchema)
+const inputmodel = mongoose.model("Input", inputSchema);
 
 export default inputmodel;
