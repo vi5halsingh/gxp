@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchAllFields,
@@ -14,6 +14,9 @@ export default function ProfileForm() {
   const { fields, formData, loading, saving, error, successMessage } =
     useSelector((state) => state.profile);
 
+  // Track real-time permission warnings per field ID
+  const [permissionWarnings, setPermissionWarnings] = useState({});
+
   useEffect(() => {
     dispatch(fetchAllFields());
     dispatch(fetchMyProfile());
@@ -28,8 +31,20 @@ export default function ProfileForm() {
     }
   }, [successMessage, error, dispatch]);
 
-  const handleInputChange = (fieldName, value) => {
-    dispatch(setFormField({ name: fieldName, value }));
+  const handleInputChange = (field, value) => {
+    const isAllowed = field.role === user?.role;
+    if (!isAllowed) {
+      setPermissionWarnings((prev) => ({ ...prev, [field._id]: true }));
+      return;
+    }
+    dispatch(setFormField({ name: field.name, value }));
+  };
+
+  const handleFieldInteraction = (field) => {
+    const isAllowed = field.role === user?.role;
+    if (!isAllowed) {
+      setPermissionWarnings((prev) => ({ ...prev, [field._id]: true }));
+    }
   };
 
   const handleSubmit = (e) => {
@@ -39,135 +54,26 @@ export default function ProfileForm() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto py-16 text-center text-gray-400">
-        Loading profile form...
+      <div className="max-w-2xl mx-auto py-16 text-center text-gray-400">
+        Loading profile details...
       </div>
     );
   }
 
-  const userRole = user?.role; // "user" or "seller"
-  const userFields = fields.filter((f) => f.role === "user");
-  const sellerFields = fields.filter((f) => f.role === "seller");
-
-  const renderField = (field, isAllowed) => {
-    return (
-      <div
-        key={field._id}
-        className={`p-4 rounded-lg border transition ${
-          isAllowed
-            ? "bg-white border-gray-200"
-            : "bg-gray-50/80 border-gray-200/70"
-        }`}
-      >
-        <div className="flex items-center justify-between mb-1.5">
-          <label
-            className={`text-sm font-medium ${
-              isAllowed ? "text-gray-800" : "text-gray-500"
-            }`}
-          >
-            {field.label}
-            {isAllowed && field.required && (
-              <span className="text-red-500 ml-1 font-semibold">*</span>
-            )}
-          </label>
-
-          <span
-            className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-              isAllowed
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-gray-100 text-gray-400 border border-gray-200"
-            }`}
-          >
-            {isAllowed ? "Editable by you" : `Locked (${field.role} only)`}
-          </span>
-        </div>
-
-        {field.type === "textarea" ? (
-          <textarea
-            rows={3}
-            value={formData[field.name] || ""}
-            onChange={(e) =>
-              isAllowed && handleInputChange(field.name, e.target.value)
-            }
-            disabled={!isAllowed}
-            required={isAllowed && field.required}
-            placeholder={
-              isAllowed
-                ? `Enter ${field.label.toLowerCase()}`
-                : `Not editable by ${userRole} role`
-            }
-            className={`w-full px-3.5 py-2 rounded-lg text-sm transition ${
-              isAllowed
-                ? "bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                : "bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed select-none"
-            }`}
-          />
-        ) : (
-          <input
-            type={field.type || "text"}
-            value={formData[field.name] || ""}
-            onChange={(e) =>
-              isAllowed && handleInputChange(field.name, e.target.value)
-            }
-            disabled={!isAllowed}
-            required={isAllowed && field.required}
-            placeholder={
-              isAllowed
-                ? `Enter ${field.label.toLowerCase()}`
-                : `Not editable by ${userRole} role`
-            }
-            className={`w-full px-3.5 py-2 rounded-lg text-sm transition ${
-              isAllowed
-                ? "bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                : "bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed select-none"
-            }`}
-          />
-        )}
-
-        {!isAllowed && (
-          <p className="text-[11px] text-gray-400 mt-1 italic">
-            This field is restricted to {field.role} accounts.
-          </p>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
+    <div className="max-w-2xl mx-auto px-4 py-10">
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-        {/* Header */}
+        {/* Header - Neutral, no roles shown */}
         <div className="border-b border-gray-100 pb-5 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Complete Your Profile
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                All profile fields are visible below. You can only edit fields
-                assigned to your role (
-                <span className="font-semibold capitalize text-gray-700">
-                  {userRole}
-                </span>
-                ).
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Your Role:</span>
-              <span
-                className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
-                  userRole === "seller"
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-green-100 text-green-700"
-                }`}
-              >
-                {userRole}
-              </span>
-            </div>
-          </div>
+          <h2 className="text-xl font-bold text-gray-900">
+            Profile Details
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Please fill out the form fields below to complete your profile.
+          </p>
         </div>
 
-        {/* Notifications */}
+        {/* Success / Error Messages */}
         {successMessage && (
           <div className="mb-6 p-4 rounded-lg text-sm font-medium border bg-green-50 text-green-800 border-green-200">
             {successMessage}
@@ -182,82 +88,99 @@ export default function ProfileForm() {
 
         {fields.length === 0 ? (
           <div className="py-12 text-center text-gray-500">
-            <p className="font-medium text-gray-700">No profile fields defined yet</p>
+            <p className="font-medium text-gray-700">No profile fields defined</p>
             <p className="text-sm text-gray-400 mt-1">
-              Admin has not added any form fields yet.
+              There are currently no fields available to fill.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* User role section */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      userRole === "user" ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  ></span>
-                  <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
-                    User Role Fields ({userFields.length})
-                  </h3>
-                </div>
-                <span className="text-xs text-gray-400">
-                  {userRole === "user" ? "✓ Allowed for your role" : "🔒 Read-only"}
-                </span>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {fields.map((field) => {
+              const isAllowed = field.role === user?.role;
+              const hasWarning = !!permissionWarnings[field._id];
 
-              {userFields.length === 0 ? (
-                <p className="text-xs text-gray-400 italic py-2">
-                  No fields configured for User role.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {userFields.map((field) =>
-                    renderField(field, userRole === "user")
+              return (
+                <div key={field._id} className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {field.label}
+                    {isAllowed && field.required && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
+                  </label>
+
+                  {field.type === "textarea" ? (
+                    <textarea
+                      rows={3}
+                      value={formData[field.name] || ""}
+                      onChange={(e) =>
+                        handleInputChange(field, e.target.value)
+                      }
+                      onFocus={() => handleFieldInteraction(field)}
+                      onClick={() => handleFieldInteraction(field)}
+                      onKeyDown={(e) => {
+                        if (!isAllowed && e.key !== "Tab") {
+                          e.preventDefault();
+                          handleFieldInteraction(field);
+                        }
+                      }}
+                      readOnly={!isAllowed}
+                      required={isAllowed && field.required}
+                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      className={`w-full px-3.5 py-2 border rounded-lg text-sm transition ${
+                        hasWarning
+                          ? "border-red-400 bg-red-50/20 text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-200"
+                          : "border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      }`}
+                    />
+                  ) : (
+                    <input
+                      type={field.type || "text"}
+                      value={formData[field.name] || ""}
+                      onChange={(e) =>
+                        handleInputChange(field, e.target.value)
+                      }
+                      onFocus={() => handleFieldInteraction(field)}
+                      onClick={() => handleFieldInteraction(field)}
+                      onKeyDown={(e) => {
+                        if (!isAllowed && e.key !== "Tab") {
+                          e.preventDefault();
+                          handleFieldInteraction(field);
+                        }
+                      }}
+                      readOnly={!isAllowed}
+                      required={isAllowed && field.required}
+                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      className={`w-full px-3.5 py-2 border rounded-lg text-sm transition ${
+                        hasWarning
+                          ? "border-red-400 bg-red-50/20 text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-200"
+                          : "border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      }`}
+                    />
+                  )}
+
+                  {/* Real-time permission warning message */}
+                  {hasWarning && (
+                    <div className="flex items-center gap-1.5 mt-1 text-xs text-red-600 font-medium">
+                      <svg
+                        className="w-4 h-4 shrink-0 text-red-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span>You do not have permission to edit this field.</span>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
+              );
+            })}
 
-            {/* Seller role section */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      userRole === "seller" ? "bg-blue-500" : "bg-gray-400"
-                    }`}
-                  ></span>
-                  <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
-                    Seller Role Fields ({sellerFields.length})
-                  </h3>
-                </div>
-                <span className="text-xs text-gray-400">
-                  {userRole === "seller" ? "✓ Allowed for your role" : "🔒 Read-only"}
-                </span>
-              </div>
-
-              {sellerFields.length === 0 ? (
-                <p className="text-xs text-gray-400 italic py-2">
-                  No fields configured for Seller role.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {sellerFields.map((field) =>
-                    renderField(field, userRole === "seller")
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs text-gray-400">
-                Submitting will only save values for your assigned (
-                <span className="font-semibold text-gray-600">{userRole}</span>)
-                fields.
-              </span>
+            {/* Submit button */}
+            <div className="pt-4 border-t border-gray-100 flex justify-end">
               <button
                 type="submit"
                 disabled={saving}

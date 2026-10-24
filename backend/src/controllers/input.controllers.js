@@ -88,10 +88,10 @@ export const getInputsByRole = async (req, res) => {
   }
 };
 
-// 3. Get all inputs (Admin only)
+// 3. Get all inputs (in creation order)
 export const getAllInputs = async (req, res) => {
   try {
-    const inputs = await inputmodel.find().sort({ role: 1, createdAt: 1 });
+    const inputs = await inputmodel.find().sort({ createdAt: 1 });
     return res.status(200).json({
       success: true,
       data: inputs,

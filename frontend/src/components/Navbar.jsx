@@ -24,11 +24,11 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl font-bold text-gray-900 tracking-tight">
-            Vidya<span className="text-indigo-600">GXP</span>
+            VidyaGXP
           </span>
-          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+          {/* <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
             Role Portal
-          </span>
+          </span> */}
         </div>
 
         {user && (
@@ -40,13 +40,15 @@ export default function Navbar() {
               <p className="text-xs text-gray-500">{user.email}</p>
             </div>
 
-            <span
-              className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider ${getRoleBadge(
-                user.role
-              )}`}
-            >
-              {user.role}
-            </span>
+            {user.role === "admin" && (
+              <span
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider ${getRoleBadge(
+                  user.role
+                )}`}
+              >
+                {user.role}
+              </span>
+            )}
 
             <button
               onClick={() => dispatch(logout())}
